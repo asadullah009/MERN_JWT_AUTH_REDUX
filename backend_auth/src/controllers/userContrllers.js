@@ -1,7 +1,10 @@
 import { User } from "../model/user.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import cookie from 'cookie-parser'
+
 const secretKey = 'yourSecretKey';
+
 // ** For SignUp New user **
 const signup = async (req, res, next) => {
     const { name, email, password } = req.body;
@@ -61,15 +64,30 @@ const login = async (req, res, next) => {
         return res.status(401).json({ message: "Invalid credentials" });
     }
     const token = jwt.sign({ id: user.id }, secretKey, {
-        expiresIn: 3600,
+        expiresIn: (1000 * 30),
     });
+
+    let expires = new Date(Date.now() + 1000 * 30);
+
+    res.cookie(String(user._id), token, {
+        path: '/',
+        expires,
+        httpOnly: true,
+        sameSite: 'lax'
+    });
+
+
     res.status(200).json({ message: "Login successful", user, token });
 };
 
 
 const varifyToken = (req, res, next) => {
-    const headers = req.headers[`authorization`];
-    const token = headers.split(" ")[1];
+    const headers = req.headers.cookie;
+    const token = headers.split("=")[1];
+
+    console.log(headers)
+    // const headers = req.headers[`authorization`];
+    // const token = headers.split(" ")[1];
     if (!token) {
         return res.status(401).json({
             message: "No token Found",
@@ -77,7 +95,7 @@ const varifyToken = (req, res, next) => {
     }
     jwt.verify(String(token), secretKey, (err, user) => {
         if (err) {
-          return res.status(400).json({ message: "Invalid TOken" });
+            return res.status(400).json({ message: "Invalid TOken" });
         }
         console.log(user?.id);
         req.id = user.id;
@@ -89,15 +107,15 @@ const getUser = async (req, res, next) => {
     const userId = req.id;
     let user;
     try {
-      user = await User.findById(userId, "-password");
+        user = await User.findById(userId, "-password");
     } catch (err) {
-      return new Error(err);
+        return new Error(err);
     }
     if (!user) {
-      return res.status(404).json({ messsage: "User Not FOund" });
+        return res.status(404).json({ messsage: "User Not FOund" });
     }
     return res.status(200).json({ user });
-  };
+};
 
 export const Signup = signup;
 export const Login = login;

@@ -26,6 +26,8 @@ const Login = () => {
       })
       .catch((err) => console.log(err));
     const data = await res.data;
+    console.log("🚀 ~ file: Login.js:29 ~ sendRequest ~ data:", data)
+    
     return data;
   };
   const handleSubmit = (e) => {
